@@ -19,8 +19,6 @@ typedef ::std::int16_t i16;
 typedef ::std::int32_t i32;
 /** Signed integer type of 64-bit width. */
 typedef ::std::int64_t i64;
-/** Signed integer type of 128-bit width. */
-typedef __int128_t i128;
 
 /** Unsigned integer type of 8-bit width. */
 typedef ::std::uint8_t u8;
@@ -30,8 +28,6 @@ typedef ::std::uint16_t u16;
 typedef ::std::uint32_t u32;
 /** Unsigned integer type of 64-bit width. */
 typedef ::std::uint64_t u64;
-/** Unsigned integer type of 128-bit width. */
-typedef __uint128_t u128;
 
 /** Floating point type of 32-bit width. */
 typedef float f32;
