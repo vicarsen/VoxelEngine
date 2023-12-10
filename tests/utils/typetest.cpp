@@ -9,7 +9,7 @@ TEST_CASE("basic type check", "[type]")
     REQUIRE(sizeof(u16) == 2);
     REQUIRE(sizeof(u32) == 4);
     REQUIRE(sizeof(u64) == 8);
-    
+
     REQUIRE(sizeof(i8) == 1);
     REQUIRE(sizeof(i16) == 2);
     REQUIRE(sizeof(i32) == 4);
@@ -67,7 +67,7 @@ TEST_CASE("allocator check", "[type]")
 
     v = utils::allocator<int>::allocate(1'000'000);
     REQUIRE(v != nullptr);
-    
+
     v = utils::allocator<int>::reallocate(v, 10'000'000);
     REQUIRE(v != nullptr);
 

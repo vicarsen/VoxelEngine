@@ -1,0 +1,167 @@
+/**
+ * @file
+ * @brief Basic buffer structures.
+ */
+#pragma once
+
+#include "type.hpp"
+
+#include <cstring>
+
+namespace utils
+{
+    /// @brief A buffer of objects.
+    /// @tparam type The type of the objects contained.
+    ///
+    /// A buffer that manages allocation and deallocation of a contiguous
+    /// array of objects of some type in a RAII style. Used as the base
+    /// structure for most containers.
+    template<typename type>
+    class buffer
+    {
+    public:
+        /** Type of an element of the buffer. */
+        typedef type value_type;
+        /** Type of the buffer. */
+        typedef buffer<type> buffer_type;
+
+        /// @brief Constructs an empty buffer.
+        inline buffer() noexcept :
+            start(nullptr), finish(nullptr)
+        {
+        }
+
+        /// @brief Constructs a new buffer identical to other.
+        /// @param other The buffer to copy.
+        ///
+        /// Only copies the data in the given buffer. No constructors or copy
+        /// operators are called.
+        inline buffer(const buffer_type& other) noexcept
+        {
+            usize s = other.finish - other.start;
+
+            start  = allocator<value_type>::allocate(s);
+            finish = start + s;
+
+            ::std::memcpy(start, other.start, s * sizeof(value_type));
+        }
+
+        /// @brief Moves other into this buffer.
+        /// @param other The buffer to move.
+        ///
+        /// After the constructor finishes, other will have no ownership
+        /// of the space it owned before, and the newly constructed buffer
+        /// keeps the ownership.
+        inline buffer(buffer_type&& other) noexcept :
+            start(other.start), finish(other.finish)
+        {
+            other.start  = nullptr;
+            other.finish = nullptr;
+        }
+
+        /// @brief Constructs a new buffer of given size.
+        /// @param s The size of the newly constructed buffer.
+        ///
+        /// Creates a new buffer that can contain s objects of type value_type,
+        /// without calling any constructors, just allocating the memory, and
+        /// taking ownership of it.
+        inline buffer(usize s) noexcept
+        {
+            start  = allocator<value_type>::allocate(s);
+            finish = start + s;
+        }
+
+        /// @brief Destructs the buffer, freeing its memory.
+        ///
+        /// If the buffer owns any memory at the time of destruction, it
+        /// frees it, ensuring no memory leaks arise.
+        inline ~buffer() noexcept
+        {
+            allocator<value_type>::deallocate(start);
+        }
+
+        /// @brief Copies a buffer.
+        /// @param other The buffer to copy.
+        ///
+        /// Only copies the data in the given buffer. No constructors or copy
+        /// operators are called.
+        inline buffer_type& operator=(const buffer_type& other) noexcept
+        {
+            usize s = other.end - other.start;
+
+            start  = allocator<value_type>::reallocate(start, s);
+            finish = start + s;
+
+            ::std::memcpy(start, other.start, s * sizeof(value_type));
+
+            return *this;
+        }
+
+        /// @brief Moves other into this buffer.
+        /// @param other The buffer to move.
+        ///
+        /// After the constructor finishes, other will have no ownership
+        /// of the space it owned before, and this buffer keeps ownership
+        /// of it. The old space owned by this buffer is deallocated.
+        inline buffer_type& operator=(buffer_type&& other) noexcept
+        {
+            allocator<value_type>::deallocate(start);
+
+            start  =  other.start; other.start  = nullptr;
+            finish = other.finish; other.finish = nullptr;
+            return *this;
+        }
+
+        /// @brief Resizes the buffer.
+        /// @param s The new size of the buffer.
+        ///
+        /// Changes the size of the buffer to hold s objects of type
+        /// value_type, discarding the data in the old buffer in the
+        /// process.
+        inline void resize(usize s) noexcept
+        {
+            start  = allocator<value_type>::reallocate(start, s);
+            finish = start + s;
+        }
+
+        /// @brief Constructs an object in-place.
+        /// @param i The index where to construct the object.
+        /// @param _args The arguments to forward to the constructor.
+        /// @return A pointer to the constructed object.
+        template<typename... args>
+        inline value_type* construct_at(usize i, args&&... _args)
+        {
+            allocator<value_type>::template construct_at<args...>(start + i, ::std::forward<args>(_args)...);
+            return start + i;
+        }
+
+        /// @brief Destructs an object in-place.
+        /// @param i The index of the object to destroy.
+        inline void destruct_at(usize i)
+        {
+            allocator<value_type>::destruct_at(start + i);
+        }
+
+        /// @brief Access an element of the buffer.
+        /// @param i The index of the element to access.
+        inline value_type& operator[](usize i) noexcept { return start[i]; }
+
+        /// @brief Access an element of the buffer.
+        /// @param i The index of the element to access.
+        inline const value_type& operator[](usize i) const noexcept { return start[i]; }
+
+        /// @brief Get the buffer length.
+        /// @return The buffer's length.
+        ///
+        /// Returns the length of the buffer as the number of objects
+        /// of type value_type that it can contain.
+        inline usize size() const noexcept { return finish - start; }
+
+    public:
+        /** Pointer to the start of the memory region containing the data */
+        value_type* start;
+        /** Pointer to the finish of the memory region containing the data */
+        value_type* finish;
+    };
+};
+
