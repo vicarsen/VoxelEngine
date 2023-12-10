@@ -1,6 +1,6 @@
 add_executable(typetest typetest.cpp)
 
-target_link_libraries(typetest PRIVATE utils Catch2::Catch2)
+target_link_libraries(typetest PRIVATE utils Catch2::Catch2WithMain)
 
 add_test(NAME testtypetest COMMAND typetest)
 
