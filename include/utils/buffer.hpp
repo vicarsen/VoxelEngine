@@ -127,24 +127,6 @@ namespace utils
             finish = start + s;
         }
 
-        /// @brief Constructs an object in-place.
-        /// @param i The index where to construct the object.
-        /// @param _args The arguments to forward to the constructor.
-        /// @return A pointer to the constructed object.
-        template<typename... args>
-        inline value_type* construct_at(usize i, args&&... _args)
-        {
-            allocator_type::construct_at(start + i, ::std::forward<args>(_args)...);
-            return start + i;
-        }
-
-        /// @brief Destructs an object in-place.
-        /// @param i The index of the object to destroy.
-        inline void destruct_at(usize i)
-        {
-            allocator_type::destruct_at(start + i);
-        }
-
         /// @brief Access an element of the buffer.
         /// @param i The index of the element to access.
         inline value_type& operator[](usize i) noexcept { return start[i]; }

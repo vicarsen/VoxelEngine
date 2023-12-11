@@ -38,7 +38,7 @@ TEST_CASE("basic buffer check", "[buffer]")
     REQUIRE(b1.size() == 10);
     REQUIRE(b1.data() != nullptr);
 
-    b1.construct_at(5, 20);
+    *(b1.data() + 5) = 20;
     REQUIRE(b1[5] == 20);
 
     utils::buffer<int> b2(b1);
@@ -57,18 +57,6 @@ TEST_CASE("basic buffer check", "[buffer]")
     REQUIRE(ref_counter::get() == 0);
 
     rbuff.resize(50);
-    REQUIRE(ref_counter::get() == 0);
-
-    rbuff.construct_at(23);
-    rbuff.construct_at(21);
-    rbuff.construct_at(15);
-    REQUIRE(ref_counter::get() == 3);
-
-    rbuff.destruct_at(23);
-    REQUIRE(ref_counter::get() == 2);
-
-    rbuff.destruct_at(21);
-    rbuff.destruct_at(15);
     REQUIRE(ref_counter::get() == 0);
 }
 
