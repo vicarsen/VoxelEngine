@@ -12,11 +12,12 @@ namespace utils
 {
     /// @brief A buffer of objects.
     /// @tparam type The type of the objects contained.
+    /// @tparam allocator The type of the allocator to use for allocating the memory.
     ///
     /// A buffer that manages allocation and deallocation of a contiguous
     /// array of objects of some type in a RAII style. Used as the base
     /// structure for most containers.
-    template<typename type>
+    template<typename type, typename allocator = allocator<type>>
     class buffer
     {
     public:
@@ -24,6 +25,8 @@ namespace utils
         typedef type value_type;
         /** Type of the buffer. */
         typedef buffer<type> buffer_type;
+        /** Type of the allocator of the buffer. */
+        typedef allocator allocator_type;
 
         /// @brief Constructs an empty buffer.
         inline buffer() noexcept :
@@ -40,7 +43,7 @@ namespace utils
         {
             usize s = other.finish - other.start;
 
-            start  = allocator<value_type>::allocate(s);
+            start  = allocator_type::allocate(s);
             finish = start + s;
 
             ::std::memcpy(start, other.start, s * sizeof(value_type));
@@ -67,7 +70,7 @@ namespace utils
         /// taking ownership of it.
         inline buffer(usize s) noexcept
         {
-            start  = allocator<value_type>::allocate(s);
+            start  = allocator_type::allocate(s);
             finish = start + s;
         }
 
@@ -77,7 +80,7 @@ namespace utils
         /// frees it, ensuring no memory leaks arise.
         inline ~buffer() noexcept
         {
-            allocator<value_type>::deallocate(start);
+            allocator_type::deallocate(start);
         }
 
         /// @brief Copies a buffer.
@@ -89,7 +92,7 @@ namespace utils
         {
             usize s = other.end - other.start;
 
-            start  = allocator<value_type>::reallocate(start, s);
+            start  = allocator_type::reallocate(start, s);
             finish = start + s;
 
             ::std::memcpy(start, other.start, s * sizeof(value_type));
@@ -105,7 +108,7 @@ namespace utils
         /// of it. The old space owned by this buffer is deallocated.
         inline buffer_type& operator=(buffer_type&& other) noexcept
         {
-            allocator<value_type>::deallocate(start);
+            allocator_type::deallocate(start);
 
             start  =  other.start; other.start  = nullptr;
             finish = other.finish; other.finish = nullptr;
@@ -120,7 +123,7 @@ namespace utils
         /// process.
         inline void resize(usize s) noexcept
         {
-            start  = allocator<value_type>::reallocate(start, s);
+            start  = allocator_type::reallocate(start, s);
             finish = start + s;
         }
 
@@ -131,7 +134,7 @@ namespace utils
         template<typename... args>
         inline value_type* construct_at(usize i, args&&... _args)
         {
-            allocator<value_type>::template construct_at<args...>(start + i, ::std::forward<args>(_args)...);
+            allocator_type::construct_at(start + i, ::std::forward<args>(_args)...);
             return start + i;
         }
 
@@ -139,7 +142,7 @@ namespace utils
         /// @param i The index of the object to destroy.
         inline void destruct_at(usize i)
         {
-            allocator<value_type>::destruct_at(start + i);
+            allocator_type::destruct_at(start + i);
         }
 
         /// @brief Access an element of the buffer.
@@ -157,10 +160,29 @@ namespace utils
         /// of type value_type that it can contain.
         inline usize size() const noexcept { return finish - start; }
 
-    public:
-        /** Pointer to the start of the memory region containing the data */
+        /// @brief Get a pointer to the contiguous array of data owned by the buffer.
+        /// @return A pointer to the array owned by the buffer.
+        inline value_type* data() noexcept { return start; }
+        /// @brief Get a pointer to the contiguous array of data owned by the buffer.
+        /// @return A pointer to the array owned by the buffer.
+        inline const value_type* data() const noexcept { return start; }
+
+        /// @brief Get a pointer (iterator) to the beginning of the data owned by the buffer.
+        /// @return A pointer (iterator) to the beginning of the array owned by the buffer.
+        inline value_type* begin() noexcept { return start; }
+        /// @brief Get a pointer (iterator) to the beginning of the data owned by the buffer.
+        /// @return A pointer (iterator) to the beginning of the array owned by the buffer.
+        inline const value_type* begin() const noexcept { return start; }
+
+        /// @brief Get a pointer (iterator) to the end of the data owned by the buffer.
+        /// @return A pointer (iterator) to the end of the array owned by the buffer.
+        inline value_type* end() noexcept { return finish; }
+        /// @brief Get a pointer (iterator) to the end of the data owned by the buffer.
+        /// @return A pointer (iterator) to the end of the array owned by the buffer.
+        inline const value_type* end() const noexcept { return finish; }
+
+    private:
         value_type* start;
-        /** Pointer to the finish of the memory region containing the data */
         value_type* finish;
     };
 };

@@ -36,7 +36,7 @@ TEST_CASE("basic buffer check", "[buffer]")
     b1.resize(10);
 
     REQUIRE(b1.size() == 10);
-    REQUIRE(b1.start != nullptr);
+    REQUIRE(b1.data() != nullptr);
 
     b1.construct_at(5, 20);
     REQUIRE(b1[5] == 20);
@@ -44,13 +44,13 @@ TEST_CASE("basic buffer check", "[buffer]")
     utils::buffer<int> b2(b1);
 
     REQUIRE(b1.size() == b2.size());
-    REQUIRE(b1.start != nullptr);
-    REQUIRE(b1.start != nullptr);
-    REQUIRE(b1.start != b2.start);
+    REQUIRE(b1.data() != nullptr);
+    REQUIRE(b1.data() != nullptr);
+    REQUIRE(b1.data() != b2.data());
     REQUIRE(b1[5] == b2[5]);
 
     b2 = std::move(utils::buffer<int>());
-    REQUIRE(b2.start == nullptr);
+    REQUIRE(b2.data() == nullptr);
     REQUIRE(b2.size() == 0);
 
     utils::buffer<ref_counter> rbuff;
