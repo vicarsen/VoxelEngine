@@ -1,6 +1,45 @@
 #include <catch2/catch_test_macros.hpp>
 #include <utils/type.hpp>
 
+class ref_counter
+{
+public:
+    inline ref_counter() noexcept
+    {
+        count++;
+    }
+
+    inline ref_counter(const ref_counter& other) noexcept
+    {
+        count++;
+    }
+
+    inline ref_counter(ref_counter&& other) noexcept
+    {
+        count++;
+    }
+
+    inline ~ref_counter() noexcept
+    {
+        count--;
+    }
+
+    inline ref_counter& operator=(ref_counter&& other) noexcept
+    {
+        return *this;
+    }
+
+    inline ref_counter& operator=(const ref_counter& other) noexcept
+    {
+        return *this;
+    }
+
+    static inline int get() noexcept { return count; }
+
+private:
+    static inline int count = 0;
+};
+
 TEST_CASE("basic type check", "[type]")
 {
     REQUIRE(sizeof(byte) == 1);
@@ -27,35 +66,6 @@ TEST_CASE("basic type check", "[type]")
     REQUIRE(utils::trivially_destructible<f64> == true);
     REQUIRE(utils::trivially_destructible<u64> == true);
 }
-
-class ref_counter
-{
-public:
-    inline ref_counter() noexcept
-    {
-        count++;
-    }
-
-    inline ref_counter(const ref_counter& other) noexcept
-    {
-        count++;
-    }
-
-    inline ref_counter(ref_counter&& other) noexcept
-    {
-        count++;
-    }
-
-    inline ~ref_counter() noexcept
-    {
-        count--;
-    }
-
-    static inline int get() noexcept { return count; }
-
-private:
-    static inline int count = 0;
-};
 
 TEST_CASE("allocator check", "[type]")
 {
