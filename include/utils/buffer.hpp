@@ -90,7 +90,7 @@ namespace utils
         /// operators are called.
         inline buffer_type& operator=(const buffer_type& other) noexcept
         {
-            usize s = other.end - other.start;
+            usize s = other.finish - other.start;
 
             start  = allocator_type::reallocate(start, s);
             finish = start + s;

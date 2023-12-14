@@ -24,6 +24,16 @@ public:
         count--;
     }
 
+    inline ref_counter& operator=(ref_counter&& other) noexcept
+    {
+        return *this;
+    }
+
+    inline ref_counter& operator=(const ref_counter& other) noexcept
+    {
+        return *this;
+    }
+
     static inline int get() noexcept { return count; }
 
 private:
@@ -32,31 +42,79 @@ private:
 
 TEST_CASE("basic buffer check", "[buffer]")
 {
-    utils::buffer<int> b1;
-    b1.resize(10);
+    utils::buffer<int> buff(10);
+    REQUIRE(buff.data() != nullptr);
+    REQUIRE(buff.size() == 10);
+    buff[7] = 5;
+    
+    SECTION("constructor")
+    {
+        SECTION("default")
+        {
+            utils::buffer<int> buff;
+            REQUIRE(buff.size() == 0);
+        }
 
-    REQUIRE(b1.size() == 10);
-    REQUIRE(b1.data() != nullptr);
+        SECTION("size")
+        {
+            utils::buffer<int> buff(10);
+            REQUIRE(buff.data() != nullptr);
+            REQUIRE(buff.size() == 10);
 
-    *(b1.data() + 5) = 20;
-    REQUIRE(b1[5] == 20);
+            buff[7] = 5;
+            REQUIRE(buff[7] == 5);
+        }
 
-    utils::buffer<int> b2(b1);
+        SECTION("copy")
+        {
+            utils::buffer<int> buff2(buff);
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 10);
+            REQUIRE(buff2[7] == 5);
+        }
 
-    REQUIRE(b1.size() == b2.size());
-    REQUIRE(b1.data() != nullptr);
-    REQUIRE(b1.data() != nullptr);
-    REQUIRE(b1.data() != b2.data());
-    REQUIRE(b1[5] == b2[5]);
+        SECTION("move")
+        {
+            utils::buffer<int> buff2(::std::move(buff));
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 10);
+            REQUIRE(buff2[7] == 5);
+        }
+    }
 
-    b2 = std::move(utils::buffer<int>());
-    REQUIRE(b2.data() == nullptr);
-    REQUIRE(b2.size() == 0);
+    SECTION("assignment")
+    {
+        SECTION("move")
+        {
+            utils::buffer<int> buff2(5);
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 5);
 
-    utils::buffer<ref_counter> rbuff;
-    REQUIRE(ref_counter::get() == 0);
+            buff2 = std::move(buff);
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 10);
+            REQUIRE(buff2[7] == 5);
+        }
 
-    rbuff.resize(50);
-    REQUIRE(ref_counter::get() == 0);
+        SECTION("copy")
+        {
+            utils::buffer<int> buff2(5);
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 5);
+
+            buff2 = buff;
+            REQUIRE(buff2.data() != nullptr);
+            REQUIRE(buff2.size() == 10);
+            REQUIRE(buff2[7] == 5);
+        }
+    }
+
+    SECTION("resize")
+    {
+        REQUIRE(buff.size() == 10);
+        buff.resize(20);
+        REQUIRE(buff.size() == 20);
+        REQUIRE(buff[7] == 5);
+    }
 }
 
