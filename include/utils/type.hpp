@@ -93,6 +93,17 @@ namespace utils
         allocator() = delete;
         ~allocator() = delete;
 
+        /// @brief Changes the type of the object allocated.
+        /// @tparam other The new type of the allocated objects.
+        template<typename other>
+        struct rebind
+        {
+            /** The new type of the allocated objects. */
+            typedef other other_type;
+            /** The new allocator. */
+            typedef allocator<other_type> allocator_type;
+        };
+
         /// @brief Allocates a single object.
         /// @return Pointer to the object allocated, or nullptr if failed.
         static inline value_type* allocate() noexcept { return reinterpret_cast<value_type*>(::std::malloc(sizeof(value_type))); }
