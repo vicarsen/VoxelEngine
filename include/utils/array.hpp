@@ -688,6 +688,39 @@ namespace utils
             resize(size());
         }
 
+        /// @brief Assigns the values of the first few elements of the array.
+        /// @param n The number of elements to assign.
+        /// @param v The value to assign to the first n elements.
+        ///
+        /// If n is bigger than the size of the array, inserts new elements to accomodate
+        /// them. If the array doesn't have enough space for these new elements, reallocates
+        /// the memory to accomodate them.
+        inline void assign(usize n, const value_type& v) noexcept
+        {
+            if(buff.begin() + n > finish)
+            {
+                if(buff.begin() + n > buff.end())
+                    resize(capacity_growth(buff.size() - n));
+
+                n -= (finish - buff.begin());
+                
+                value_type* it = buff.begin();
+                while(it != finish)
+                    *(it++) = v;
+
+                value_type* new_finish = finish + n;
+                while(finish != new_finish)
+                    allocator_type::construct_at(finish++, v);
+            }
+            else
+            {
+                value_type* it = buff.begin();
+                value_type* stop = it + n;
+                while(it != stop)
+                    *(it++) = v;
+            }
+        }
+
         /// @brief Pushes an element to the top of the array which is constructed in-place.
         /// @param _args The arguments to pass to the constructor.
         /// @return A reference to the element constructed.
@@ -945,5 +978,272 @@ namespace utils
     template<typename type> struct is_relocatable<__detail::__iterator::array_reverse_iterator<type>> : public ::std::true_type {};
     template<typename type> struct is_relocatable<__detail::__iterator::array_const_reverse_iterator<type>> : public ::std::true_type {};
     template<typename type, typename allocator> struct is_relocatable<array<type, allocator>> : public ::std::true_type {};
+
+    /// @brief Basic sparse array.
+    /// @tparam type The type of the elements of the array.
+    /// @tparam allocator The allocator to use to allocate its data.
+    ///
+    /// Implementation of a sparse array that respects RAII. The array can be used to construct
+    /// elements at random indices, without having constructed the rest of the elements. It DOES
+    /// NOT avoid allocating the other elements, so indices still dictate the memory required.
+    /// Because of this, it is mostly used just as a base for other structures, like linked lists,
+    /// and hash maps.
+    template<typename type, typename allocator = allocator<type>>
+    class sparse_array
+    {
+    public:
+        /** The type of the elements of the array. */
+        typedef type value_type;
+        /** The type of the allocator of the array. */
+        typedef allocator allocator_type;
+
+        /** The type of the buffer used for managing memory. */
+        typedef buffer<value_type, allocator_type> buffer_type;
+
+        /** The type of the sparse array. */
+        typedef sparse_array<value_type, allocator_type> sparse_array_type;
+        
+        /** A rebind of the allocator to a boolean allocator used by the bitset. */
+        typedef allocator_type::template rebind<bool>::allocator_type bitset_allocator_type;
+        /** The type of the bitset that keeps track of the elements in the array. */
+        typedef array<bool, bitset_allocator_type> bitset_type;
+
+        /// @brief Constructs an empty sparse array.
+        inline sparse_array() noexcept :
+            buff(), bitset()
+        {
+        }
+
+        /// @brief Move constructor.
+        /// @param other The sparse array moved.
+        inline sparse_array(sparse_array_type&& other) noexcept :
+            buff(::std::move(other.buff)), bitset(::std::move(other.bitset))
+        {
+        }
+
+        /// @brief Copy constructor.
+        /// @param other The sparse array copied.
+        inline sparse_array(const sparse_array_type& other) noexcept :
+            buff(other.buff.size()), bitset(other.bitset)
+        {
+            for(usize i = 0; i < buff.size(); i++)
+                if(bitset[i])
+                    allocator_type::construct_at(buff.begin() + i, other.buff[i]);
+        }
+
+        inline ~sparse_array() noexcept
+        {
+            clear_buffer();
+        }
+
+        /// @brief Move assignment operator.
+        /// @param other The sparse array moved.
+        /// @return A reference to this object.
+        inline sparse_array_type& operator=(sparse_array_type&& other) noexcept
+        {
+            buff = ::std::move(other.buff);
+            bitset = ::std::move(other.bitset);
+
+            return *this;
+        }
+
+        /// @brief Copy assignment operator.
+        /// @param other The sparse array copied.
+        /// @return A reference to this object.
+        inline sparse_array_type& operator=(const sparse_array_type& other) noexcept
+        {
+            clear_buffer();
+            if(buff.size() < other.buff.size())
+                buff.resize(other.buff.size());
+
+            bitset = other.bitset;
+            for(usize i = 0; i < buff.size(); i++)
+                if(bitset[i])
+                    allocator_type::construct_at(buff.begin() + i, other.buff[i]);
+
+            return *this;
+        }
+
+        /// @brief Reserves space for the indices in [0, n).
+        /// @param n The number of objects to reserve memory for.
+        ///
+        /// Assures that the array has space for objects at indices [0, n).
+        inline void reserve(usize n) noexcept
+        {
+            if(buff.size() < n)
+                resize(n);
+        }
+
+        /// @brief Removes all elements of the array, calling their destructors if needed.
+        inline void clear() noexcept
+        {
+            clear_buffer();
+            bitset.assign(buff.size(), 0);
+        }
+
+        /// @brief Inserts an object at the given index.
+        /// @param i The index where to insert the object.
+        /// @param _args The arguments to use for constructing the object in-place.
+        /// @return A reference to the newly added object.
+        ///
+        /// If the array doesn't have enough space for the index, performs a reallocation.
+        /// If there is already an element at the given index, replaces it with the new
+        /// element.
+        template<typename... args>
+        inline value_type& insert(usize i, args&&... _args) noexcept
+        {
+            if(buff.size() <= i)
+                resize(i + 1);
+
+            return insert_unchecked(i, ::std::forward<args>(_args)...);
+        }
+
+        /// @brief Inserts an object at the given index.
+        /// @param i The index where to insert the object.
+        /// @param _args The arguments to use for constructing the object in-place.
+        /// @return A reference to the newly added object.
+        ///
+        /// Same behaviour as insert, but doesn't check if there is space for the index.
+        /// If there isn't space for the index, behaviour is undefined.
+        template<typename... args>
+        inline value_type& insert_unchecked(usize i, args&&... _args) noexcept
+        {
+            if(bitset[i] == 0)
+            {
+                allocator_type::construct_at(buff.begin() + i, ::std::forward<args>(_args)...);
+                bitset[i] = 1;
+            }
+            else buff[i] = value_type(::std::forward<args>(_args)...);
+
+            return buff[i];
+        }
+
+        /// @brief Erases an element at an index, calling its destructor if needed.
+        /// @param i The index of the element to erase.
+        ///
+        /// Checks if the element exists. If it does, erases it.
+        inline void erase(usize i) noexcept
+        {
+            if(i < buff.size() && bitset[i])
+            {
+                allocator_type::destruct_at(buff.begin() + i);
+                bitset[i] = 0;
+            }
+        }
+
+        /// @brief Erases an element at an index, calling its destructor if needed.
+        /// @param i The index of the element to erase.
+        ///
+        /// Unlike erase, it doesn't check if the element exists. If it doesn't, behaviour
+        /// is undefined.
+        inline void erase_unchecked(usize i) noexcept
+        {
+            allocator_type::destruct_at(buff.begin() + i);
+            bitset[i] = 0;
+        }
+
+        /// @brief Get the element at an index, inserting a default object if it doesn't exist.
+        /// @param i The index of the element to return.
+        /// @param _args The arguments to use for constructing the default object in-place.
+        /// @return A reference to the object at index i.
+        template<typename... args>
+        inline value_type& get_or_insert(usize i, args&&... _args) noexcept
+        {
+            if(buff.size() <= i)
+                resize(i + 1);
+
+            if(bitset[i] == 0)
+                return insert_unchecked(i, ::std::forward<args>(_args)...);
+
+            return buff[i];
+        }
+
+        /// @brief Get the element at an index, or a default object if it doesn't exist.
+        /// @param i The index of the element to return.
+        /// @param def The default object to return if the array doesn't have an object at index i.
+        /// @return The object at index i, or def if it doesn't exist.
+        ///
+        /// Unlike get_or_insert, it doesn't insert the default object.
+        inline value_type& get_or(usize i, value_type& def) noexcept
+        {
+            if(buff.size() <= i || bitset[i] == 0)
+                return def;
+
+            return buff[i];
+        }
+
+        /// @brief Get the element at an index, or a default object if it doesn't exist.
+        /// @param i The index of the element to return.
+        /// @param def The default object to return if the array doesn't have an object at index i.
+        /// @return The object at index i, or def if it doesn't exist.
+        ///
+        /// Unlike get_or_insert, it doesn't insert the default object.
+        inline const value_type& get_or(usize i, const value_type& def) const noexcept
+        {
+            if(buff.size() <= i || bitset[i] == 0)
+                return def;
+
+            return buff[i];
+        }
+
+        /// @brief Checks if the array has an element at a given index.
+        /// @param i The index to search.
+        /// @return true if there is an object at index i, false otherwise.
+        inline bool has(usize i) const noexcept { return i < buff.size() && bitset[i]; }
+
+        /// @brief Returns the element at index i.
+        /// @param i The index of the element to return.
+        /// @return The element at index i.
+        inline value_type& get(usize i) noexcept { return buff[i]; }
+        /// @brief Returns the element at index i.
+        /// @param i The index of the element to return.
+        /// @return The element at index i.
+        inline const value_type& get(usize i) const noexcept { return buff[i]; }
+
+        /// @brief Returns the capacity of the array.
+        /// @return The capacity of the array.
+        inline usize capacity() const noexcept { return buff.size(); }
+
+        /// @brief Returns the element at index i.
+        /// @param i The index of the element to return.
+        /// @return The element at index i.
+        inline value_type& operator[](usize i) noexcept { return buff[i]; }
+        /// @brief Returns the element at index i.
+        /// @param i The index of the element to return.
+        /// @return The element at index i.
+        inline const value_type& operator[](usize i) const noexcept { return buff[i]; }
+
+    private:
+        inline void clear_buffer() noexcept
+        {
+            for(usize i = 0; i < buff.size(); i++)
+                if(bitset[i])
+                    allocator_type::destruct_at(buff.begin() + i);
+        }
+
+        void resize(usize n) noexcept
+        {
+            bitset.reserve_exactly(n);
+            if(bitset.size() < n)
+                bitset.push_many_unchecked(0, n - bitset.size());
+
+            buffer_type new_buffer(n);
+
+            for(usize i = 0; i < buff.size(); i++)
+                if(bitset[i])
+                {
+                    allocator_type::construct_at(new_buffer.begin() + i, ::std::move(buff[i]));
+                    allocator_type::destruct_at(buff.begin() + i);
+                }
+
+            buff = ::std::move(new_buffer);
+        }
+
+    private:
+        buffer_type buff;
+        bitset_type bitset;
+    };
+
+    template<typename type, typename allocator> struct is_relocatable<sparse_array<type, allocator>> : public ::std::true_type {};
 };
 

@@ -664,3 +664,204 @@ TEMPLATE_TEST_CASE("array-span test", "[array][span]", utils::span<int>, utils::
     }
 }
 
+TEST_CASE("basic sparse array check", "[array][sparse-array]")
+{
+    utils::sparse_array<int> arr;
+    arr.insert(3, 7);
+    REQUIRE(arr.capacity() > 3);
+    REQUIRE(arr.has(3));
+    REQUIRE(arr.get(3) == 7);
+
+    SECTION("constructor")
+    {
+        SECTION("default")
+        {
+            utils::sparse_array<int> arr;
+            REQUIRE(arr.capacity() == 0);
+        }
+
+
+        SECTION("move")
+        {
+            utils::sparse_array<int> arr2(::std::move(arr));
+            REQUIRE(arr2.capacity() > 3);
+            REQUIRE(arr2.has(3));
+            REQUIRE(arr2.get(3) == 7);
+        }
+
+        SECTION("copy")
+        {
+            utils::sparse_array<int> arr2(arr);
+            REQUIRE(arr2.capacity() > 3);
+            REQUIRE(arr2.has(3));
+            REQUIRE(arr2.get(3) == 7);
+        }
+    }
+
+    SECTION("assignment")
+    {
+        SECTION("move")
+        {
+            utils::sparse_array<int> arr2;
+            arr2.insert(2, 3);
+            REQUIRE(arr2.capacity() > 2);
+            REQUIRE(arr2.has(2));
+            REQUIRE(arr2.get(2) == 3);
+
+            arr2 = ::std::move(arr);
+            REQUIRE(arr2.capacity() > 3);
+            REQUIRE(arr2.has(3));
+            REQUIRE(arr2.get(3) == 7);
+            REQUIRE((!arr2.has(2)));
+        }
+
+        SECTION("copy")
+        {
+            utils::sparse_array<int> arr2;
+            arr2.insert(2, 3);
+            REQUIRE(arr2.capacity() > 2);
+            REQUIRE(arr2.has(2));
+            REQUIRE(arr2.get(2) == 3);
+
+            arr2 = arr;
+            REQUIRE(arr2.capacity() > 3);
+            REQUIRE(arr2.has(3));
+            REQUIRE(arr2.get(3) == 7);
+            REQUIRE(!arr2.has(2));
+        }
+    }
+
+    SECTION("reserve")
+    {
+        utils::sparse_array<int> arr;
+        REQUIRE(arr.capacity() == 0);
+
+        arr.reserve(50);
+        REQUIRE(arr.capacity() >= 50);
+
+        arr.reserve(20);
+        REQUIRE(arr.capacity() >= 50);
+    }
+
+    SECTION("modify")
+    {
+        SECTION("insert")
+        {
+            utils::sparse_array<int> arr;
+            arr.insert(4, 5);
+            REQUIRE(arr.has(4));
+            REQUIRE(arr.get(4) == 5);
+
+            arr.insert(4, 3);
+            REQUIRE(arr.has(4));
+            REQUIRE(arr.get(4) == 3);
+        }
+
+        SECTION("insert unchecked")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(20);
+
+            arr.insert_unchecked(5, 3);
+            REQUIRE(arr.has(5));
+            REQUIRE(arr.get(5) == 3);
+
+            arr.insert_unchecked(5, 2);
+            REQUIRE(arr.has(5));
+            REQUIRE(arr.get(5) == 2);
+        }
+
+        SECTION("erase")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(20);
+            arr.insert_unchecked(2, 10);
+            arr.insert_unchecked(5, 20);
+            arr.erase(2);
+            arr.erase(7);
+            arr.erase(21);
+
+            REQUIRE((!arr.has(2) && arr.has(5) && !arr.has(7) && !arr.has(21)));
+        }
+
+        SECTION("erase unchecked")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(20);
+            arr.insert_unchecked(2, 10);
+            arr.insert_unchecked(5, 20);
+            arr.erase(2);
+
+            REQUIRE((!arr.has(2) && arr.has(5)));
+        }
+
+        SECTION("clear")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(50);
+            arr.insert_unchecked(2, 5);
+            arr.insert_unchecked(5, 8);
+            arr.insert_unchecked(30, 7);
+
+            REQUIRE((arr.has(2) && arr.get(2) == 5));
+            REQUIRE((arr.has(5) && arr.get(5) == 8));
+            REQUIRE((arr.has(30) && arr.get(30) == 7));
+
+            arr.clear();
+
+            REQUIRE(!arr.has(2));
+            REQUIRE(!arr.has(5));
+            REQUIRE(!arr.has(30));
+            REQUIRE(arr.capacity() >= 50);
+        }
+
+        SECTION("get or insert")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(30);
+            arr.insert_unchecked(20, 56);
+
+            REQUIRE((arr.has(20) && arr.get(20) == 56));
+            REQUIRE(arr.get_or_insert(19, 3) == 3);
+            REQUIRE((arr.has(19) && arr.get(19) == 3));
+
+            REQUIRE(arr.get_or_insert(20, 9) == 56);
+            REQUIRE(arr.get(20) == 56);
+        }
+    }
+
+    SECTION("access")
+    {
+        SECTION("get or")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(50);
+            arr.insert_unchecked(2, 50);
+            arr.insert_unchecked(6, 10);
+            arr.insert_unchecked(10, 9);
+
+            REQUIRE(arr.get_or(2, 9) == 50);
+            REQUIRE(arr.get_or(6, 1) == 10);
+            REQUIRE(arr.get_or(10, 4) == 9);
+
+            REQUIRE(arr.get_or(1, 9) == 9);
+            REQUIRE(arr.get_or(1, 8) == 8);
+            REQUIRE(!arr.has(1));
+
+            REQUIRE(arr.get_or(19, 7) == 7);
+            REQUIRE(!arr.has(19));
+        }
+
+        SECTION("has")
+        {
+            utils::sparse_array<int> arr;
+            arr.reserve(30);
+            arr.insert_unchecked(9, 10);
+            arr.insert_unchecked(20, 7);
+
+            REQUIRE((arr.has(9) && arr.has(20)));
+            REQUIRE((!arr.has(2) && !arr.has(7) && !arr.has(64)));
+        }
+    }
+}
+
