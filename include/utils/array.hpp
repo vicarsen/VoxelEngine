@@ -1004,7 +1004,7 @@ namespace utils
         typedef sparse_array<value_type, allocator_type> sparse_array_type;
         
         /** A rebind of the allocator to a boolean allocator used by the bitset. */
-        typedef allocator_type::template rebind<bool>::allocator_type bitset_allocator_type;
+        typedef typename allocator_type::template rebind<bool>::allocator_type bitset_allocator_type;
         /** The type of the bitset that keeps track of the elements in the array. */
         typedef array<bool, bitset_allocator_type> bitset_type;
 
