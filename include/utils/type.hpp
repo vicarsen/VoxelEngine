@@ -82,16 +82,13 @@ namespace utils
     /// and object construction/destruction.
     /// @tparam type The type that the allocator handles.
     template<typename type>
-    class allocator
+    class basic_allocator
     {
     public:
         /** The type allocated by the allocator. */
         typedef type value_type;
         /** The type of the allocator. */
-        typedef allocator<type> allocator_type;
-
-        allocator() = delete;
-        ~allocator() = delete;
+        typedef basic_allocator<type> allocator_type;
 
         /// @brief Changes the type of the object allocated.
         /// @tparam other The new type of the allocated objects.
@@ -101,41 +98,44 @@ namespace utils
             /** The new type of the allocated objects. */
             typedef other other_type;
             /** The new allocator. */
-            typedef allocator<other_type> allocator_type;
+            typedef basic_allocator<other_type> allocator_type;
         };
+
+        basic_allocator() = delete;
+        ~basic_allocator() = delete;
 
         /// @brief Allocates a single object.
         /// @return Pointer to the object allocated, or nullptr if failed.
-        static inline value_type* allocate() noexcept { return reinterpret_cast<value_type*>(::std::malloc(sizeof(value_type))); }
+        inline value_type* allocate() noexcept { return reinterpret_cast<value_type*>(::std::malloc(sizeof(value_type))); }
         /// @brief Allocates a contiguous array of objects.
         /// @param n The length of the array to allocate.
         /// @return Pointer to the beginning of the array allocated, or nullptr if failed.
-        static inline value_type* allocate(usize n) noexcept { return reinterpret_cast<value_type*>(::std::malloc(n * sizeof(value_type))); }
+        inline value_type* allocate(usize n) noexcept { return reinterpret_cast<value_type*>(::std::malloc(n * sizeof(value_type))); }
 
         /// @brief Reallocates a contiguous array of objects.
         /// @param ptr The beginning of the array to reallocate.
         /// @param n The length of the reallocated array.
         /// @return Pointer to the beginning of the array allocated, or nullptr if failed.
-        static inline value_type* reallocate(value_type* ptr, usize n) noexcept { return reinterpret_cast<value_type*>(::std::realloc(ptr, n * sizeof(value_type))); }
+        inline value_type* reallocate(value_type* ptr, usize n) noexcept { return reinterpret_cast<value_type*>(::std::realloc(ptr, n * sizeof(value_type))); }
 
         /// @brief Deallocates a memory region previously allocated.
         /// @param ptr The beginning of the region to deallocate.
-        static inline void deallocate(value_type* ptr) noexcept { ::std::free(ptr); }
+        inline void deallocate(value_type* ptr) noexcept { ::std::free(ptr); }
 
         /// @brief In-place constructs an object.
         /// @param ptr The memory location where to construct the object.
         /// @param _args The arguments to forward to the object's constructor.
         template<typename... args>
-        static inline void construct_at(value_type* ptr, args&&... _args) noexcept { new (ptr) value_type(::std::forward<args>(_args)...); }
+        inline void construct_at(value_type* ptr, args&&... _args) noexcept { new (ptr) value_type(::std::forward<args>(_args)...); }
 
         /// @brief In-place destructs an object.
         /// @param ptr The memory location of the object to destruct.
         ///
         /// For trivially destructible types, it is specialized to do nothing (i.e. it gets
         /// compiled away).
-        static inline void destruct_at(value_type* ptr) noexcept { ptr->~value_type(); }
+        inline void destruct_at(value_type* ptr) noexcept { ptr->~value_type(); }
 
-        static inline void destruct_at([[maybe_unused]] value_type* ptr) noexcept requires trivially_destructible<value_type> {}
+        inline void destruct_at([[maybe_unused]] value_type* ptr) noexcept requires trivially_destructible<value_type> {}
     };
 };
 

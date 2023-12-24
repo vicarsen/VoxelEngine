@@ -371,7 +371,7 @@ namespace utils
     /// @tparam allocator The allocator to use to allocate its data.
     ///
     /// Implementation of an array of variable length that respects RAII.
-    template<typename type, typename allocator = allocator<type>>
+    template<typename type, typename allocator = basic_allocator<type>>
     class array
     {
     public:
@@ -988,7 +988,7 @@ namespace utils
     /// NOT avoid allocating the other elements, so indices still dictate the memory required.
     /// Because of this, it is mostly used just as a base for other structures, like linked lists,
     /// and hash maps.
-    template<typename type, typename allocator = allocator<type>>
+    template<typename type, typename allocator = basic_allocator<type>>
     class sparse_array
     {
     public:

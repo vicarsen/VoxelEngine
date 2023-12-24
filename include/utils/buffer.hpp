@@ -17,7 +17,7 @@ namespace utils
     /// A buffer that manages allocation and deallocation of a contiguous
     /// array of objects of some type in a RAII style. Used as the base
     /// structure for most containers.
-    template<typename type, typename allocator = allocator<type>>
+    template<typename type, typename allocator = basic_allocator<type>>
     class buffer
     {
     public:
