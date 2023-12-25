@@ -10,3 +10,7 @@ add_executable(arraytest arraytest.cpp)
 target_link_libraries(arraytest PRIVATE utils Catch2::Catch2WithMain)
 add_test(NAME testarraytest COMMAND arraytest)
 
+add_executable(arenatest arenatest.cpp)
+target_link_libraries(arenatest PRIVATE utils Catch2::Catch2WithMain)
+add_test(NAME testarenatest COMMAND arenatest)
+
