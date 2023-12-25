@@ -887,5 +887,36 @@ TEST_CASE("basic sparse array check", "[array][sparse-array]")
             REQUIRE((!arr.has(2) && !arr.has(7) && !arr.has(64)));
         }
     }
+
+    SECTION("lifetime")
+    {
+        utils::sparse_array<ref_counter> array;
+        REQUIRE(ref_counter::get() == 0);
+
+        array.reserve(100);
+        REQUIRE(ref_counter::get() == 0);
+
+        array.insert_unchecked(4);
+        array.insert(10);
+        array.get_or_insert(3);
+        REQUIRE(ref_counter::get() == 3);
+    
+        array.erase(3);
+        array.erase_unchecked(10);
+        REQUIRE(ref_counter::get() == 1);
+
+        array = utils::sparse_array<ref_counter>();
+        REQUIRE(ref_counter::get() == 0);
+
+        array.insert(20);
+        array.insert(10);
+        array.insert(9);
+
+        utils::sparse_array<ref_counter> copy(array);
+        REQUIRE(ref_counter::get() == 6);
+
+        copy.clear();
+        REQUIRE(ref_counter::get() == 3);
+    }
 }
 

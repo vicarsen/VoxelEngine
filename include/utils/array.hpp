@@ -1006,16 +1006,19 @@ namespace utils
 
         /** The type of the sparse array. */
         typedef sparse_array<value_type, allocator_type> sparse_array_type;
-        
-        /** A rebind of the allocator to a boolean allocator used by the bitset. */
-        typedef typename allocator_type::template rebind<bool>::allocator_type bitset_allocator_type;
-        /** The type of the bitset that keeps track of the elements in the array. */
-        typedef array<bool, bitset_allocator_type> bitset_type;
 
         /// @brief Constructs an empty sparse array.
         inline sparse_array() noexcept :
             buff(), bitset()
         {
+        }
+
+        /// @brief Constructs a sparse array and reserves space.
+        /// @param capacity The number of elements to reserve.
+        inline sparse_array(usize capacity) noexcept :
+            buff(capacity), bitset(capacity)
+        {
+            bitset.push_many_unchecked(capacity, 0);
         }
 
         /// @brief Move constructor.
@@ -1045,6 +1048,8 @@ namespace utils
         /// @return A reference to this object.
         inline sparse_array_type& operator=(sparse_array_type&& other) noexcept
         {
+            clear_buffer();
+
             buff = ::std::move(other.buff);
             bitset = ::std::move(other.bitset);
 
@@ -1265,6 +1270,11 @@ namespace utils
         }
 
     private:
+        /** A rebind of the allocator to a boolean allocator used by the bitset. */
+        typedef typename allocator_type::template rebind<bool>::allocator_type bitset_allocator_type;
+        /** The type of the bitset that keeps track of the elements in the array. */
+        typedef array<bool, bitset_allocator_type> bitset_type;
+
         buffer_type buff;
         bitset_type bitset;
     };
