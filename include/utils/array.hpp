@@ -945,6 +945,8 @@ namespace utils
         inline operator const_span_type() const noexcept { return const_span_type(buff.begin(), finish); }
 
     private:
+        /// If n is smaller than the current capacity, assumes that
+        /// the size is less than n.
         void resize(usize n) noexcept
         {
             buffer_type new_buffer(n);
@@ -961,6 +963,8 @@ namespace utils
             finish = v;
         }
 
+        /// If n is smaller than the current capacity, assumes that
+        /// the size is less than n.
         void resize(usize n) noexcept requires relocatable<value_type>
         {
             usize sz = size();
@@ -1072,6 +1076,25 @@ namespace utils
         {
             if(buff.size() < n)
                 resize(n);
+        }
+
+        /// @brief Reserves space for the indices in [0, n) and only them.
+        /// @param n The number of objects to reserve memory for.
+        ///
+        /// Assures that the array has only the space for objects at indices [0, n).
+        inline void reserve_exactly(usize n) noexcept
+        {
+            resize(n);
+        }
+
+        /// @brief Shrinks the array's capacity to the smallest possible size.
+        inline void shrink_to_fit() noexcept
+        {
+            usize cap = buff.size();
+            while(cap != 0 && !bitset[cap - 1])
+                cap--;
+
+            resize(cap);
         }
 
         /// @brief Removes all elements of the array, calling their destructors if needed.
@@ -1221,6 +1244,8 @@ namespace utils
                     allocator_type::destruct_at(buff.begin() + i);
         }
 
+        /// If n is less than the current capacity, assumes that there exist
+        /// no elements at an index greater than n.
         void resize(usize n) noexcept
         {
             bitset.reserve_exactly(n);
@@ -1229,7 +1254,7 @@ namespace utils
 
             buffer_type new_buffer(n);
 
-            for(usize i = 0; i < buff.size(); i++)
+            for(usize i = 0; i < n; i++)
                 if(bitset[i])
                 {
                     allocator_type::construct_at(new_buffer.begin() + i, ::std::move(buff[i]));

@@ -735,12 +735,36 @@ TEST_CASE("basic sparse array check", "[array][sparse-array]")
     {
         utils::sparse_array<int> arr;
         REQUIRE(arr.capacity() == 0);
+        
+        SECTION("reserve increases capacity")
+        {
+            arr.reserve(50);
+            REQUIRE(arr.capacity() >= 50);
 
-        arr.reserve(50);
-        REQUIRE(arr.capacity() >= 50);
+            arr.reserve(20);
+            REQUIRE(arr.capacity() >= 50);
+        }
 
-        arr.reserve(20);
-        REQUIRE(arr.capacity() >= 50);
+        SECTION("reserve exactly sets capacity")
+        {
+            arr.reserve_exactly(50);
+            REQUIRE(arr.capacity() == 50);
+
+            arr.reserve_exactly(20);
+            REQUIRE(arr.capacity() == 20);
+        }
+
+        SECTION("shrink to fit")
+        {
+            arr.reserve(50);
+            arr.insert(7, 3);
+            REQUIRE(arr.capacity() >= 50);
+            REQUIRE((arr.has(7) && arr.get(7) == 3));
+        
+            arr.shrink_to_fit();
+            REQUIRE(arr.capacity() >= 7);
+            REQUIRE((arr.has(7) && arr.get(7) == 3));
+        }
     }
 
     SECTION("modify")
