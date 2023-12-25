@@ -106,36 +106,36 @@ namespace utils
 
         /// @brief Allocates a single object.
         /// @return Pointer to the object allocated, or nullptr if failed.
-        inline value_type* allocate() noexcept { return reinterpret_cast<value_type*>(::std::malloc(sizeof(value_type))); }
+        static inline value_type* allocate() noexcept { return reinterpret_cast<value_type*>(::std::malloc(sizeof(value_type))); }
         /// @brief Allocates a contiguous array of objects.
         /// @param n The length of the array to allocate.
         /// @return Pointer to the beginning of the array allocated, or nullptr if failed.
-        inline value_type* allocate(usize n) noexcept { return reinterpret_cast<value_type*>(::std::malloc(n * sizeof(value_type))); }
+        static inline value_type* allocate(usize n) noexcept { return reinterpret_cast<value_type*>(::std::malloc(n * sizeof(value_type))); }
 
         /// @brief Reallocates a contiguous array of objects.
         /// @param ptr The beginning of the array to reallocate.
         /// @param n The length of the reallocated array.
         /// @return Pointer to the beginning of the array allocated, or nullptr if failed.
-        inline value_type* reallocate(value_type* ptr, usize n) noexcept { return reinterpret_cast<value_type*>(::std::realloc(ptr, n * sizeof(value_type))); }
+        static inline value_type* reallocate(value_type* ptr, usize n) noexcept { return reinterpret_cast<value_type*>(::std::realloc(ptr, n * sizeof(value_type))); }
 
         /// @brief Deallocates a memory region previously allocated.
         /// @param ptr The beginning of the region to deallocate.
-        inline void deallocate(value_type* ptr) noexcept { ::std::free(ptr); }
+        static inline void deallocate(value_type* ptr) noexcept { ::std::free(ptr); }
 
         /// @brief In-place constructs an object.
         /// @param ptr The memory location where to construct the object.
         /// @param _args The arguments to forward to the object's constructor.
         template<typename... args>
-        inline void construct_at(value_type* ptr, args&&... _args) noexcept { new (ptr) value_type(::std::forward<args>(_args)...); }
+        static inline void construct_at(value_type* ptr, args&&... _args) noexcept { new (ptr) value_type(::std::forward<args>(_args)...); }
 
         /// @brief In-place destructs an object.
         /// @param ptr The memory location of the object to destruct.
         ///
         /// For trivially destructible types, it is specialized to do nothing (i.e. it gets
         /// compiled away).
-        inline void destruct_at(value_type* ptr) noexcept { ptr->~value_type(); }
+        static inline void destruct_at(value_type* ptr) noexcept { ptr->~value_type(); }
 
-        inline void destruct_at([[maybe_unused]] value_type* ptr) noexcept requires trivially_destructible<value_type> {}
+        static inline void destruct_at([[maybe_unused]] value_type* ptr) noexcept requires trivially_destructible<value_type> {}
     };
 };
 
