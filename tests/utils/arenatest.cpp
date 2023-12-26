@@ -41,9 +41,9 @@ private:
     static inline int count = 0;
 };
 
-TEST_CASE("basic block arena check", "[arena][block_arena]")
+TEST_CASE("basic basic arena check", "[arena][block_arena]")
 {
-    utils::block_arena<int> arena;
+    utils::basic_arena<int> arena;
     usize i1 = arena.create(2);
     usize i2 = arena.create(7);
     usize i3 = arena.create(5);
@@ -56,21 +56,21 @@ TEST_CASE("basic block arena check", "[arena][block_arena]")
     {
         SECTION("default")
         {
-            utils::block_arena<int> arena;
+            utils::basic_arena<int> arena;
             REQUIRE(arena.capacity() == 0);
             REQUIRE(arena.size() == 0);
         }
 
         SECTION("capacity")
         {
-            utils::block_arena<int> arena(20);
+            utils::basic_arena<int> arena(20);
             REQUIRE(arena.capacity() >= 20);
             REQUIRE(arena.size() == 0);
         }
 
         SECTION("move")
         {
-            utils::block_arena<int> arena2(::std::move(arena));
+            utils::basic_arena<int> arena2(::std::move(arena));
             REQUIRE(arena2.size() == 3);
             REQUIRE(arena2[i1] == 2);
             REQUIRE(arena2[i2] == 7);
@@ -79,7 +79,7 @@ TEST_CASE("basic block arena check", "[arena][block_arena]")
 
         SECTION("copy")
         {
-            utils::block_arena<int> arena2(arena);
+            utils::basic_arena<int> arena2(arena);
             REQUIRE(arena2.size() == 3);
             REQUIRE(arena2[i1] == 2);
             REQUIRE(arena2[i2] == 7);
@@ -89,7 +89,7 @@ TEST_CASE("basic block arena check", "[arena][block_arena]")
 
     SECTION("assignment")
     {
-        utils::block_arena<int> arena2;
+        utils::basic_arena<int> arena2;
         usize i4 = arena2.create(9);
         usize i5 = arena2.create(3);
         REQUIRE(arena2.size() == 2);
@@ -169,7 +169,7 @@ TEST_CASE("basic block arena check", "[arena][block_arena]")
 
     SECTION("lifetime")
     {
-        utils::block_arena<ref_counter> arena;
+        utils::basic_arena<ref_counter> arena;
         REQUIRE(ref_counter::get() == 0);
 
         usize i1 = arena.create();
@@ -192,14 +192,14 @@ TEST_CASE("basic block arena check", "[arena][block_arena]")
         arena.reserve(100);
         REQUIRE(ref_counter::get() == 1);
 
-        arena = utils::block_arena<ref_counter>();
+        arena = utils::basic_arena<ref_counter>();
         REQUIRE(ref_counter::get() == 0);
 
         i1 = arena.create();
         i2 = arena.create();
         i3 = arena.create();
 
-        utils::block_arena<ref_counter> copy(arena);
+        utils::basic_arena<ref_counter> copy(arena);
         REQUIRE(ref_counter::get() == 6);
 
         copy.clear();

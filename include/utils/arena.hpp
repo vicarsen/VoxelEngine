@@ -8,7 +8,7 @@ namespace utils
     /// @tparam type The type managed by the arena.
     /// @tparam allocator The allocator to use internally.
     template<typename type, typename allocator = basic_allocator<type>>
-    class block_arena
+    class basic_arena
     {
     public:
         /** The type handled by the arena. */
@@ -17,17 +17,17 @@ namespace utils
         typedef allocator allocator_type;
 
         /** The type of the arena. */
-        typedef block_arena<value_type, allocator_type> block_arena_type;
+        typedef basic_arena<value_type, allocator_type> basic_arena_type;
 
         /// @brief Default constructor.
-        inline block_arena() noexcept :
+        inline basic_arena() noexcept :
             buffer(), stack()
         {
         }
 
         /// @brief Constructs an arena with a given capacity.
         /// @param capacity The capacity of the arena.
-        inline block_arena(usize capacity) noexcept : 
+        inline basic_arena(usize capacity) noexcept : 
             buffer(capacity), stack(capacity)
         {
             for(usize n = capacity; n != 0; n--)
@@ -36,23 +36,23 @@ namespace utils
 
         /// @brief Move constructor.
         /// @param other The arena to move.
-        inline block_arena(block_arena_type&& other) noexcept : 
+        inline basic_arena(basic_arena_type&& other) noexcept : 
             buffer(::std::move(other.buffer)), stack(::std::move(other.stack))
         {
         }
 
         /// @brief Copy constructor.
         /// @param other The arena to copy.
-        inline block_arena(const block_arena_type& other) noexcept : 
+        inline basic_arena(const basic_arena_type& other) noexcept : 
             buffer(other.buffer), stack(other.stack)
         {
         }
 
-        inline ~block_arena() noexcept {}
+        inline ~basic_arena() noexcept {}
 
         /// @brief Move assignment.
         /// @param other The arena to move.
-        inline block_arena_type& operator=(block_arena_type&& other) noexcept
+        inline basic_arena_type& operator=(basic_arena_type&& other) noexcept
         {
             buffer = ::std::move(other.buffer);
             stack = ::std::move(other.stack);
@@ -62,7 +62,7 @@ namespace utils
 
         /// @brief Copy assignment.
         /// @param other The arena to copy.
-        inline block_arena_type& operator=(const block_arena_type& other) noexcept
+        inline basic_arena_type& operator=(const basic_arena_type& other) noexcept
         {
             buffer = other.buffer;
             stack = other.stack;
